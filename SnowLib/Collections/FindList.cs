@@ -80,6 +80,7 @@ namespace SnowLib
         private T[] items;
         private int size;
         private int version;
+        private bool updating;
         #endregion
 
         #region Constructors and initializing
@@ -96,54 +97,61 @@ namespace SnowLib
         #endregion
 
         #region Operations
-        private void insert(int index, T item)
+        public void BeginUpdate()
         {
-            if (index > this.size)
-                throw new ArgumentOutOfRangeException("index");
-            if (this.size == this.items.Length)
-                Array.Resize<T>(ref this.items, this.items.Length * 2);
-            if (index < this.size)
-                Array.Copy(this.items, index, this.items, index + 1, this.size - index);
-            this.items[index] = item;
-            this.size++;
+            this.updating = true;
+        }
+
+        public void EndUpdate()
+        {
+            Array.Sort<T>(this.items, 0, this.size, this);
             this.version++;
+            this.updating = false;
         }
 
-        public void Assign(IEnumerable<T> collection)
-        {
-            if (collection == null)
-                throw new ArgumentNullException("collection");
-            this.items = collection.OrderBy(m => m.GetHashCode()).ToArray();
-            this.size = this.items.Length;
-            this.version = 0;
-        }
-
-        public int Add(T item)
+        public void Add(T item)
         {
             if (item == null)
                 throw new ArgumentNullException("item");
-            int index = Array.BinarySearch<T>(this.items, 0, this.size, item, this);
-            if (index < 0)
-                index = ~index;
+            int index;
+            if (this.updating)
+            {
+                if (this.size == this.items.Length)
+                    Array.Resize<T>(ref this.items, this.items.Length * 2);
+                index = this.size;
+            }
             else
             {
-                int ihc = item.GetHashCode();
-                for (int i = index; i < this.size && this.items[i].GetHashCode() == ihc; i++)
-                    if (this.items[i].Equals(item))
-                        return -1;
-                for (int i = index - 1; i >= 0 && this.items[i].GetHashCode() == ihc; i--)
-                    if (this.items[i].Equals(item))
-                        return -1;
+                index = Array.BinarySearch<T>(this.items, 0, this.size, item, this);
+                if (index < 0)
+                    index = ~index;
+                else
+                {
+                    int ihc = item.GetHashCode();
+                    for (int i = index; i < this.size && this.items[i].GetHashCode() == ihc; i++)
+                        if (this.items[i].Equals(item))
+                            return;
+                    for (int i = index - 1; i >= 0 && this.items[i].GetHashCode() == ihc; i--)
+                        if (this.items[i].Equals(item))
+                            return;
+                }
+                if (this.size == this.items.Length)
+                    Array.Resize<T>(ref this.items, this.items.Length * 2);
+                if (index < this.size)
+                    Array.Copy(this.items, index, this.items, index + 1, this.size - index);
             }
-            insert(index, item);
-            return index;
+            this.items[index] = item;
+            this.version++;
+            this.size++;
         }
 
         public int Find(T item)
         {
             if (item == null)
                 throw new ArgumentNullException("item");
-            int index = Array.BinarySearch<T>(this.items, 0, this.size, item, this);
+            int index = this.updating ? 
+                Array.IndexOf<T>(this.items, item) :
+                Array.BinarySearch<T>(this.items, 0, this.size, item, this);
             if (index >= 0)
             {
                 int ihc = item.GetHashCode();
