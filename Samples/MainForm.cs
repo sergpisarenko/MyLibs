@@ -52,29 +52,8 @@ namespace Samples
             watch.Reset();
             watch.Start();
             HashSet<string> hset = new HashSet<string>(list);
-            //for (int i = 0; i < this.lxFLSource.Items.Count; i++)
-            //{
-              //  hset.Add((string)this.lxFLSource.Items[i]);
-            //}
             watch.Stop();
             sb.Append("   HashSet: ");
-            sb.Append(watch.ElapsedTicks.ToString());
-            tm = GC.GetTotalMemory(true) - tm;
-            sb.Append('/');
-            sb.Append(tm.ToString());
-
-            tm = GC.GetTotalMemory(true);
-            SnowLib.FindList<string> flist = new SnowLib.FindList<string>(this.lxFLSource.Items.Count);
-            watch.Reset();
-            watch.Start();
-            flist.BeginUpdate();
-            for (int i = 0; i < this.lxFLSource.Items.Count; i++)
-            {
-                flist.Add((string)this.lxFLSource.Items[i]);
-            }
-            flist.EndUpdate();
-            watch.Stop();
-            sb.Append("   FindList: ");
             sb.Append(watch.ElapsedTicks.ToString());
             tm = GC.GetTotalMemory(true) - tm;
             sb.Append('/');
@@ -101,17 +80,6 @@ namespace Samples
             watch.Stop();
             sb.Append("   HashSet: ");
             sb.Append(watch.ElapsedTicks.ToString());
-
-            watch.Reset();
-            watch.Start();
-            for (int i = 0; i < this.lxFLSource.Items.Count; i++)
-            {
-                flist.Find((string)this.lxFLSource.Items[i]);
-            }
-            watch.Stop();
-            sb.Append("   FindList: ");
-            sb.Append(watch.ElapsedTicks.ToString());
-
 
 
 
