@@ -8,9 +8,10 @@ using System.Threading.Tasks;
 namespace SnowLib
 {
     /// <summary>
-    /// Standard Add/Insert/Remove collection with pre- and post- action event subscribing
+    /// Standard Add/Insert/Remove collection with pre- and post- operation events
     /// </summary>
     /// <typeparam name="T">Collection element type</typeparam>
+    /// <remarks>Copyright (c) 2014 PSN</remarks>
     public class EventList<T> : IEnumerable, IEnumerable<T>, IReadOnlyCollection<T>, IReadOnlyList<T>, IList<T>, ICollection<T>
     {
         #region Nested structures and classes
@@ -104,21 +105,23 @@ namespace SnowLib
             {
                 if (index < 0 || index >= this.size)
                     throw new IndexOutOfRangeException("index");
-                OnRemoving(index, this.items[index]);
-                OnInserting(index, value);
+                T old = this.items[index];
+                OnRemoving(index);
+                OnInserting(value);
                 this.items[index] = value;
-                OnChanged();
+                OnRemoved(old);
+                OnInserted(index);
             }
         }
         /// <summary>
         /// Event before insert
         /// </summary>
-        public event EventHandler<ItemEventArgs> Inserting;
+        public event EventHandler<T> Inserting;
         
         /// <summary>
         /// Event before remove
         /// </summary>
-        public event EventHandler<ItemEventArgs> Removing;
+        public event EventHandler<int> Removing;
 
         /// <summary>
         /// Event before clear
@@ -126,9 +129,19 @@ namespace SnowLib
         public event EventHandler Clearing;
         
         /// <summary>
-        /// Event after insert/remove/clear
+        /// Event after insert
         /// </summary>
-        public event EventHandler Changed;
+        public event EventHandler<int> Inserted;
+
+        /// <summary>
+        /// Event after remove
+        /// </summary>
+        public event EventHandler<T> Removed;
+
+        /// <summary>
+        /// Event after clear
+        /// </summary>
+        public event EventHandler Cleared;
         
         /// <summary>
         /// Always writable
@@ -156,7 +169,7 @@ namespace SnowLib
         {
             if (index > this.size)
                 throw new ArgumentOutOfRangeException("index");
-            OnInserting(index, item);
+            OnInserting(item);
             if (this.size == this.items.Length)
                 Array.Resize<T>(ref this.items, this.items.Length * 2);
             if (index < this.size)
@@ -164,7 +177,7 @@ namespace SnowLib
             this.items[index] = item;
             this.size++;
             this.version++;
-            OnChanged();
+            OnInserted(index);
         }
 
         public void Add(T item)
@@ -174,14 +187,17 @@ namespace SnowLib
 
         public void AddRange(params T[] item)
         {
-            for(int i=0; i<item.Length; i++)
-                OnInserting(this.size+i, item[i]);
+            if (this.Inserting != null)
+                for(int i=0; i<item.Length; i++)
+                    OnInserting(item[i]);
             if (this.size + item.Length >= this.items.Length)
                 Array.Resize<T>(ref this.items, this.size + item.Length);
             Array.Copy(item, 0, this.items, this.size, item.Length);
             this.size += item.Length;
             this.version++;
-            OnChanged();
+            if (this.Inserted != null)
+                for (int i = this.size - item.Length; i < this.size; i++)
+                    OnInserted(i);
         }
 
         public void Insert(int index, T item)
@@ -205,13 +221,14 @@ namespace SnowLib
         {
             if (index < 0 || index >= this.size)
                 throw new IndexOutOfRangeException("index");
-            OnRemoving(index, this.items[index]);
+            T item = this.items[index];
+            OnRemoving(index);
             this.size--;
             if (index < this.size)
                 Array.Copy(this.items, index + 1, this.items, index, this.size - index);
             this.items[this.size] = default(T);
             this.version++;
-            OnChanged();
+            OnRemoved(item);
         }
 
         public void Clear()
@@ -220,7 +237,7 @@ namespace SnowLib
             for (int index = 0; index < this.size; index++)
                 this.items[index] = default(T);
             this.size = 0;
-            OnChanged();
+            OnCleared();
         }
 
         public int IndexOf(T item)
@@ -256,18 +273,17 @@ namespace SnowLib
         #endregion
 
         #region Event raising methods
-        protected virtual void OnRemoving(int index, T item)
+        protected virtual void OnInserting(T item)
         {
-            ItemEventArgs args = new ItemEventArgs(index, item);
-            if (this.Removing != null)
-                this.Removing(this, args);
+            if (this.Inserting != null)
+                this.Inserting(this, item);
         }
 
-        protected virtual void OnInserting(int index, T item)
+
+        protected virtual void OnRemoving(int index)
         {
-            ItemEventArgs args = new ItemEventArgs(index, item);
-            if (this.Inserting != null)
-                this.Inserting(this, args);
+            if (this.Removing != null)
+                this.Removing(this, index);
         }
 
         protected virtual void OnClearing()
@@ -276,10 +292,22 @@ namespace SnowLib
                 this.Clearing(this, EventArgs.Empty);
         }
 
-        protected virtual void OnChanged()
+        protected virtual void OnInserted(int index)
         {
-            if (this.Changed != null)
-                this.Changed(this, EventArgs.Empty);
+            if (this.Inserted != null)
+                this.Inserted(this, index);
+        }
+
+        protected virtual void OnRemoved(T item)
+        {
+            if (this.Removed != null)
+                this.Removed(this, item);
+        }
+
+        protected virtual void OnCleared()
+        {
+            if (this.Cleared != null)
+                this.Cleared(this, EventArgs.Empty);
         }
         #endregion
     }

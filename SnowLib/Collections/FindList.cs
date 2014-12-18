@@ -6,17 +6,19 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
+
 namespace SnowLib
 {
     /// <summary>
-    /// Element list stored sorted by GetHashCode for fast serach
+    /// List stored sorted by GetHashCode for fast find operation
     /// </summary>
-    /// <typeparam name="T">Element type, must have correct GetHashCode() method</typeparam>
-    public class FindList<T> : IEnumerable, IEnumerable<T>, IReadOnlyCollection<T>, IReadOnlyList<T>, IComparer<KeyValuePair<int, T>>
+    /// <typeparam name="T">Element type, must have correct and fast GetHashCode() method</typeparam>
+    /// <remarks>Copyright (c) 2014 PSN</remarks>
+    public class FindList<T> : IEnumerable, IEnumerable<T>, IReadOnlyCollection<T>, IReadOnlyList<T>, IComparer<T>
     {
-        #region Nested structures and classes
+        #region Nested structures classes
         /// <summary>
-        /// Typed and untyped enumerators
+        /// Typed and untyped enumerator
         /// </summary>
         public struct Enumerator : IEnumerator<T>, IEnumerator
         {
@@ -54,7 +56,7 @@ namespace SnowLib
                     throw new InvalidOperationException("List has been changed");
                 if (this.index < list.size)
                 {
-                    this.current = this.list.items[this.index].Value;
+                    this.current = this.list.items[this.index];
                     this.index++;
                     return true;
                 }
@@ -75,30 +77,31 @@ namespace SnowLib
         #endregion
 
         #region Private fields
-        private KeyValuePair<int, T>[] items;
+        private T[] items;
         private int size;
         private int version;
         #endregion
 
         #region Constructors and initializing
-        public FindList():this(4)
+        public FindList()
+            : this(4)
         {
 
         }
 
         public FindList(int capacity)
         {
-            this.items = new KeyValuePair<int,T>[capacity];
+            this.items = new T[capacity];
         }
         #endregion
 
-        #region Main operations
-        private void insert(int index, KeyValuePair<int, T> item)
+        #region Operations
+        private void insert(int index, T item)
         {
             if (index > this.size)
                 throw new ArgumentOutOfRangeException("index");
             if (this.size == this.items.Length)
-                Array.Resize<KeyValuePair<int,T>>(ref this.items, this.items.Length * 2);
+                Array.Resize<T>(ref this.items, this.items.Length * 2);
             if (index < this.size)
                 Array.Copy(this.items, index, this.items, index + 1, this.size - index);
             this.items[index] = item;
@@ -110,7 +113,7 @@ namespace SnowLib
         {
             if (collection == null)
                 throw new ArgumentNullException("collection");
-            this.items = collection.Select(m => new KeyValuePair<int, T>(m.GetHashCode(), m)).OrderBy(m => m.Key).ToArray();
+            this.items = collection.OrderBy(m => m.GetHashCode()).ToArray();
             this.size = this.items.Length;
             this.version = 0;
         }
@@ -119,8 +122,7 @@ namespace SnowLib
         {
             if (item == null)
                 throw new ArgumentNullException("item");
-            KeyValuePair<int, T> innerItem = new KeyValuePair<int, T>(item.GetHashCode(), item);
-            int index = Array.BinarySearch<KeyValuePair<int, T>>(this.items, 0, this.size, innerItem, this);
+            int index = Array.BinarySearch<T>(this.items, 0, this.size, item, this);
             if (index < 0)
                 index = ~index;
             else
@@ -133,23 +135,22 @@ namespace SnowLib
                     if (this.items[i].Equals(item))
                         return -1;
             }
-            insert(index, innerItem);
+            insert(index, item);
             return index;
         }
 
         public int Find(T item)
         {
-            if (item==null)
+            if (item == null)
                 throw new ArgumentNullException("item");
-            KeyValuePair<int, T> innerItem = new KeyValuePair<int, T>(item.GetHashCode(), item);
-            int index = Array.BinarySearch<KeyValuePair<int, T>>(this.items, 0, this.size, innerItem, this);
-            if (index>=0)
+            int index = Array.BinarySearch<T>(this.items, 0, this.size, item, this);
+            if (index >= 0)
             {
                 int ihc = item.GetHashCode();
-                for(int i=index; i<this.size && this.items[i].GetHashCode()==ihc; i++)
+                for (int i = index; i < this.size && this.items[i].GetHashCode() == ihc; i++)
                     if (this.items[i].Equals(item))
                         return i;
-                for(int i=index-1; i>=0 && this.items[i].GetHashCode()==ihc; i--)
+                for (int i = index - 1; i >= 0 && this.items[i].GetHashCode() == ihc; i--)
                     if (this.items[i].Equals(item))
                         return i;
             }
@@ -172,28 +173,35 @@ namespace SnowLib
                 this.size--;
                 if (index < this.size)
                     Array.Copy(this.items, index + 1, this.items, index, this.size - index);
-                this.items[this.size] = default(KeyValuePair<int, T>);
+                this.items[this.size] = default(T);
                 this.version++;
             }
             else
                 throw new IndexOutOfRangeException("index");
         }
+
+        public void Clear()
+        {
+            for (int index = 0; index < this.size; index++)
+                this.items[index] = default(T);
+            this.size = 0;
+        }
         #endregion
 
-        #region Comparing IComparer<T>
-        int IComparer<KeyValuePair<int, T>>.Compare(KeyValuePair<int, T> x, KeyValuePair<int, T> y)
+        #region Comparing T by hashcode
+        int IComparer<T>.Compare(T x, T y)
         {
-            return x.Key.CompareTo(y.Key);
+            return x.GetHashCode().CompareTo(y.GetHashCode());
         }
         #endregion
 
         #region IEnumerable, IEnumerable<T>, IReadOnlyCollection<T>, IReadOnlyList<T> interfaces
         public T this[int index]
         {
-            get 
+            get
             {
                 if (index < size)
-                    return items[index].Value;
+                    return items[index];
                 else
                     throw new IndexOutOfRangeException("index");
             }
