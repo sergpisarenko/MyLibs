@@ -6,6 +6,7 @@ using System.Drawing;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using System.Linq;
 
 namespace Samples
 {
@@ -15,9 +16,60 @@ namespace Samples
         public MainForm()
         {
             InitializeComponent();
-            //SnowLib.FindList<int> x = new SnowLib.FindList<int>();
+            System.Linq.Expressions.Expression left = System.Linq.Expressions.Expression.Constant(false);
+            System.Linq.Expressions.Expression right = System.Linq.Expressions.Expression.Constant(true);
+            System.Linq.Expressions.Expression add = System.Linq.Expressions.Expression.Or(left, right);
+
+            Delegate d2 = System.Linq.Expressions.Expression.Lambda(add).Compile();
+            object y = d2.DynamicInvoke();
+
+
+            //Expression
+
+            int x2 = 1;
+            int y2 = (2 | 2 << 2) + 1;
+
+            //typeof(System.Math).GetMethod("DivRem", )
+
+
+            SnowLib.Scripting.SimpleExpressionParser sep = new SnowLib.Scripting.SimpleExpressionParser();
+            //sep.UserFunctions = this;
+
+
+            //this.Text = sep.GetValue("12.3e2 + MyConstantA - MyFuc(33, \"ddd\")").ToString();
+            System.Linq.Expressions.Expression expr = sep.GetValue("System.Math.Pow(2.0, 3.0) + 4.0");
+            Delegate d = System.Linq.Expressions.Expression.Lambda(expr).Compile();
+            object x = d.DynamicInvoke();
 
         }
+
+        public double? MyFunc(int x, string y)
+        {
+            return 1;
+        }
+
+      
+        /*private double? MyFunc(SnowLib.Scripting.SimpleExpressionTokenizer tokz)
+        {
+            switch(tokz.CurrentTokenNameValue)
+            {
+                case "MyConstantA":
+                    return 10.0;
+                case "MyFunc":
+                    //tokz.GetLeftParanthesis();
+                    
+
+
+                    //tokz.GetRightParanthesis();
+                    // function сalculations here
+                    return 0.0;
+                default:
+                    throw new SnowLib.Scripting.SimpleExpressionException("Unknown name", tokz.Start, tokz.Length);
+
+            }
+            return 0.0;
+
+        }*/
 
         #region Find List test
         private void btnFLTest_Click(object sender, EventArgs e)

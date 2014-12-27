@@ -5,7 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SnowLib
+namespace SnowLib.Collections
 {
     /// <summary>
     /// Standard Add/Insert/Remove collection with pre- and post- operation events
