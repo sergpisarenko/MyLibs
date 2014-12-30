@@ -51,6 +51,7 @@ namespace SnowLib.Scripting
         Semi,       // ;
         Colon,      // :
         Comma,      // ,
+        Point,      // .
         Equal,      // =
         Less,       // <
         More,       // >
@@ -306,6 +307,10 @@ namespace SnowLib.Scripting
                         break;
                     case ',':
                         this.CurrentToken = SimpleExpressionToken.Comma;
+                        this.Pos++;
+                        break;
+                    case '.':
+                        this.CurrentToken = SimpleExpressionToken.Point;
                         this.Pos++;
                         break;
                     default:
@@ -588,17 +593,6 @@ namespace SnowLib.Scripting
             public MethodDesc(MethodInfo info) : this(null, info)
             {
             }
-
-            public bool IsAppropriate(List<Expression> callParameters)
-            {
-                if (callParameters.Count != this.Parameters.Length)
-                    return false;
-                for (int i = 0; i < callParameters.Count; i++)
-                    if (!callParameters[i].Type.Equals(this.Parameters[i]))
-                        return false;
-                return true;
-            }
-    
         }
         #endregion
 
@@ -636,7 +630,7 @@ namespace SnowLib.Scripting
         #endregion
 
         #region Основные методы
-        public Expression GetValue(string formula)
+        public Expression GetExpression(string formula)
         {
             this.tokz.Formula = formula;
             return Expr(true, false);
@@ -660,7 +654,7 @@ namespace SnowLib.Scripting
                         if (part)
                             return left;
                         else
-                            throw new SimpleExpressionException("Ожидался || или конец формулы", this.tokz.Start);
+                            throw new SimpleExpressionException("Ожидался || или конец формулы", this.CurTokStart);
                 }
             }
         }
@@ -799,22 +793,30 @@ namespace SnowLib.Scripting
         // вычисляет * и /
         private Expression MulDiv(bool get)
         {
-            Expression left = Prim(get);
+            Expression left = CallMethod(get);
             for (; ; )
             {
                 switch (this.tokz.CurrentToken)
                 {
                     case SimpleExpressionToken.Mul:
-                        left = Expression.Multiply(left, Prim(true));
+                        left = Expression.Multiply(left, CallMethod(true));
                         break;
                     case SimpleExpressionToken.Div:
-                        left = Expression.Divide(left, Prim(true));
+                        left = Expression.Divide(left, CallMethod(true));
                         break;
+
                     default:
                         return left;
                 }
             }
         }
+
+        // вызывает методы
+        private Expression CallMethod(bool get)
+        {
+            return getCallSequence(Prim(get));
+        }
+
 
         // первичные выражения
         private Expression Prim(bool get)
@@ -827,9 +829,9 @@ namespace SnowLib.Scripting
                 case SimpleExpressionToken.LP: // выражение в скобках
                     v = Expr(true, true);
                     if (this.tokz.CurrentToken != SimpleExpressionToken.RP)
-                        throw new SimpleExpressionException("Ожидались закрывающие круглые скобки.", this.tokz.Start);
+                        throw new SimpleExpressionException("Ожидались закрывающие круглые скобки.", this.CurTokStart);
                     this.tokz.GetToken();
-                    return v;
+                    return getCallSequence(v);
 
                 case SimpleExpressionToken.CondNot: // cond not
                 case SimpleExpressionToken.BitNot: // bitset not
@@ -865,9 +867,14 @@ namespace SnowLib.Scripting
                     return v;
 
                 case SimpleExpressionToken.Name: // имя
-                    v = GetNameValue(this.tokz.CurrentTokenNameValue);
+                    v = GetNameValue(this.tokz.CurrentTokenNameValue, null);
+                    return v;
+
+                case SimpleExpressionToken.Text: // текстовая константа
+                    v = Expression.Constant(this.tokz.CurrentTokenTextValue);
                     this.tokz.GetToken();
                     return v;
+
 
                 default:
                     throw new SimpleExpressionException("Ожидалось первичное выражение (выражение в скобках, унарный минус, число или функция).", this.tokz.Start);
@@ -876,14 +883,25 @@ namespace SnowLib.Scripting
         #endregion
 
         #region Работа с функциями и константами
+        private Expression getCallSequence(Expression expr)
+        {
+            while (this.tokz.CurrentToken == SimpleExpressionToken.Point)
+            {
+                if (this.tokz.GetToken() != SimpleExpressionToken.Name)
+                    throw new SimpleExpressionException("Ожидалось имя метода или свойства", this.CurTokStart, this.CurTokLength);
+                expr = GetNameValue(this.tokz.CurrentTokenNameValue, expr);
+            }
+            return expr;
+        }
+
         // получение значения по имени
-        private Expression GetNameValue(string name)
+        private Expression GetNameValue(string name, Expression expr)
         {
             SimpleExpressionToken next = this.tokz.GetToken();
             switch(next)
             {
                 case SimpleExpressionToken.LP: // function
-                    return GetFunctionValue(name);
+                    return GetFunctionValue(name, expr);
 
 
 
@@ -895,26 +913,28 @@ namespace SnowLib.Scripting
             return null;
         }
 
-        private Expression GetFunctionValue(string name)
+        private Expression GetFunctionValue(string name, Expression expr)
         {
             Type type;
             string methodName;
             int index = name.LastIndexOf('.');
-            Expression instance;
             if (index > 0)
             {
+                if (expr != null)
+                    throw new SimpleExpressionException("Неверное имя метода name", this.CurTokStart);
                 string typeName = name.Substring(0, index);
                 type = Type.GetType(typeName);
                 if (type == null)
                     throw new SimpleExpressionException("Неизвестное имя типа \"" + typeName + "\"", this.CurTokStart);
                 methodName = name.Substring(index + 1, name.Length - index - 1);
-                instance = null;
             }
             else
             {
-                type = null;
-                methodName = "";
-                instance = null;
+                if (expr != null)
+                    type = expr.Type;
+                else
+                    type = null;
+                methodName = name;
             }
             List<Expression> callParameters = new List<Expression>(3);
             bool getToken = false;
@@ -931,7 +951,8 @@ namespace SnowLib.Scripting
             if (methodInfo == null)
                 throw new SimpleExpressionException("Не найден подходящий метод \""+name+"\" с параметрами: "+
                     String.Join(", ",  (object[])callTypes), this.CurTokStart);
-            return Expression.Call(instance, methodInfo, callParameters);
+            this.tokz.GetToken();
+            return Expression.Call(expr, methodInfo, callParameters);
         }
         #endregion
     }
