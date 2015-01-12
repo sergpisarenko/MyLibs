@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 using System.Reflection;
-using System.Linq;
+//using System.Linq;
 using System.Linq.Expressions;
 
 namespace SnowLib.Scripting
@@ -565,7 +565,7 @@ namespace SnowLib.Scripting
     #region Парсер выражений
     public class SimpleExpressionParser
     {
-        #region Открытые методы и свойства
+        #region Открытые поля и свойства
         // состояние разбора формулы
         public bool IsParsing { get { return this.tokz.CurrentToken != SimpleExpressionToken.End; } }
         // связанный объект
@@ -574,26 +574,8 @@ namespace SnowLib.Scripting
         public int CurTokStart { get { return this.tokz.Start; } }
         // длина лексемы
         public int CurTokLength { get { return this.tokz.Length; } }
-        #endregion
-
-        #region Private classes
-        private struct MethodDesc
-        {
-            public readonly object Instance;
-            public readonly MethodInfo Info;
-            public readonly Type[] Parameters;
-
-            public MethodDesc(object instance, MethodInfo info)
-            {
-                this.Instance = instance;
-                this.Info = info;
-                this.Parameters = this.Info.GetParameters().Select(m => m.ParameterType).ToArray();
-            }
-
-            public MethodDesc(MethodInfo info) : this(null, info)
-            {
-            }
-        }
+        // current methods and properties library
+        public object Library { get; set; }
         #endregion
 
         #region Закрытые поля
@@ -607,25 +589,10 @@ namespace SnowLib.Scripting
         {
         }
 
-        public SimpleExpressionParser(SimpleExpressionParser parser)
+        public SimpleExpressionParser(object library)
         {
-            if (parser != null)
-            {
-               // this.ExternalFunction = parser.ExternalFunction;
-            }
+            this.Library = library;
             this.tokz = new SimpleExpressionTokenizer();
-            
-            /*this.extFunc = new Dictionary<string, List<MethodDesc>>(100);
-            foreach (MethodInfo mi in typeof(System.Math).GetMethods(BindingFlags.Public | BindingFlags.Static))
-            {
-                List<MethodDesc> list;
-                if (!this.extFunc.TryGetValue(mi.Name, out list))
-                {
-                    list = new List<MethodDesc>(3);
-                    this.extFunc.Add(mi.Name, list);
-                }
-                list.Add(new MethodDesc(mi));
-            }*/
         }
         #endregion
 
@@ -898,19 +865,7 @@ namespace SnowLib.Scripting
         private Expression GetNameValue(string name, Expression expr)
         {
             SimpleExpressionToken next = this.tokz.GetToken();
-            switch(next)
-            {
-                case SimpleExpressionToken.LP: // function
-                    return GetFunctionValue(name, expr);
-
-
-
-
-
-
-
-            }
-            return null;
+            return next == SimpleExpressionToken.LP ? GetFunctionValue(name, expr) : GetPropFieldValue(name, expr);
         }
 
         private Expression GetFunctionValue(string name, Expression expr)
@@ -946,13 +901,124 @@ namespace SnowLib.Scripting
                     throw new SimpleExpressionException("Ожидалась закрывающая скобка для завершения параметров или запятая для их продолжения", this.CurTokStart);                    
                 getToken = true;
             }
-            Type[] callTypes = callParameters.Select( m => m.Type ).ToArray();
+            Type[] callTypes = new Type[callParameters.Count];
+            for (int i = 0; i < callTypes.Length; i++)
+                callTypes[i] = callParameters[i].Type;
             MethodInfo methodInfo = type.GetMethod(methodName, callTypes);
             if (methodInfo == null)
                 throw new SimpleExpressionException("Не найден подходящий метод \""+name+"\" с параметрами: "+
                     String.Join(", ",  (object[])callTypes), this.CurTokStart);
             this.tokz.GetToken();
             return Expression.Call(expr, methodInfo, callParameters);
+        }
+
+        private Expression GetIndexValue(Expression expr)
+        {
+            return null;
+        }
+
+        private Expression GetPropFieldValue(string name, Expression expr)
+        {
+            string firstPart;
+            string nextParts = null;
+            int index = name.IndexOf('.');
+            if (index > 0)
+            {
+                firstPart = name.Substring(0, index);
+                nextParts = name.Substring(index + 1);
+            }
+            else
+                firstPart = name;
+            if (this.Library != null)
+            {
+                type = this.Library.GetType();
+                FieldInfo fieldInfo = type.GetField(firstPart, BindingFlags.Public);
+                if (fieldInfo != null)
+                {
+                    expr = Expression.Field(expr, type, pfName);
+
+                    PropertyInfo propInfo = type.GetProperty(firstPart, BindingFlags.Public);
+                    if (propInfo == null)
+                    {
+                        
+                    }
+                    else
+                    {
+
+
+                    }
+
+                }
+                else
+                {
+                    
+
+                }
+                
+                
+
+
+            }
+                       
+            
+            if (nameParts.Length == 1)
+            {
+                // method of custom library
+                if (this.Library == null)
+                    throw new SimpleExpressionException("Библиотека для поля или свойства " + name + " не задана", this.CurTokStart);
+                type = this.Library.GetType();
+            }
+            else
+            {
+                
+            }*/
+
+
+
+
+
+            return null;
+            
+            
+            /*if (index > 0)
+            {
+                if (expr != null)
+                    throw new SimpleExpressionException("Неверное имя метода (с \".\"): "+name, this.CurTokStart);
+                string typeName = name.Substring(0, index);
+                type = Type.GetType(typeName);
+                if (type == null)
+                    throw new SimpleExpressionException("Неизвестное имя типа \"" + typeName + "\"", this.CurTokStart);
+                pfName = name.Substring(index + 1, name.Length - index - 1);
+                bf |= BindingFlags.Static;
+            }
+            else
+            {
+                if (expr != null)
+                    type = expr.Type;
+                else
+                {
+                    type = null;
+                    bf |= BindingFlags.Static;
+                }
+                pfName = name;
+            }
+            PropertyInfo pi = type.GetProperty(pfName, bf);
+            if (pi == null)
+            {
+                FieldInfo fi = type.GetField(pfName, bf);
+                if (fi == null)
+                    throw new SimpleExpressionException("Неверное имя поля или свойства " + name, this.CurTokStart);
+                else
+                {
+                    this.tokz.GetToken();
+                    return Expression.Field(expr, type, pfName);
+                }
+            }
+            else
+            {
+                this.tokz.GetToken();
+                return Expression.Property(expr, type, pfName);
+            }*/
         }
         #endregion
     }

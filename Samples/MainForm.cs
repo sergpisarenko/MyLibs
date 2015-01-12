@@ -6,12 +6,19 @@ using System.Drawing;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
-using System.Linq;
 
 namespace Samples
 {
     public partial class MainForm : Form
     {
+
+        public class My
+        {
+            public string Name = "Fixed";
+        }
+
+        public My FieldTest;
+
 
         public MainForm()
         {
@@ -30,16 +37,19 @@ namespace Samples
             int y2 = (2 | 2 << 2) + 1;
 
             //typeof(System.Math).GetMethod("DivRem", )
+            FieldTest = new My();
 
-            SnowLib.Scripting.SimpleExpressionParser sep = new SnowLib.Scripting.SimpleExpressionParser();
+            SnowLib.Scripting.SimpleExpressionParser sep = new SnowLib.Scripting.SimpleExpressionParser(this);
+            
             //sep.UserFunctions = this;
 
 
             //this.Text = sep.GetValue("12.3e2 + MyConstantA - MyFuc(33, \"ddd\")").ToString();
             //System.Linq.Expressions.Expression expr = sep.GetExpression("System.String.Concat(-System.Math.Pow(2.0, 3.0).ToString(), 4.0.ToString())");
-            System.Linq.Expressions.Expression expr = sep.GetExpression("(3.4+4.54666).ToString(\"0.00\")");
+            System.Linq.Expressions.Expression expr = sep.GetExpression("FieldTest.Name"); //"(3.4+4.54666).ToString(\"0.00\")");
             Delegate d = System.Linq.Expressions.Expression.Lambda(expr).Compile();
             object x = d.DynamicInvoke();
+            
 
         }
 
