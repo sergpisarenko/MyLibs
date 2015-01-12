@@ -917,108 +917,83 @@ namespace SnowLib.Scripting
             return null;
         }
 
+        /*private bool isFieldOrProperty(string name, Type type)
+        {
+            MemberInfo[] mi = this.Library.GetType().GetMember(pfName, BindingFlags.Public | BindingFlags.Instance);
+            if (mi.Length > 0 && (mi[0].MemberType == MemberTypes.Field || mi[0].MemberType == MemberTypes.Property))
+            
+        }*/
+
         private Expression GetPropFieldValue(string name, Expression expr)
         {
-            string firstPart;
-            string nextParts = null;
             int index = name.IndexOf('.');
-            if (index > 0)
+            string pfName = index < 0 ? name : name.Substring(0, index);
+            BindingFlags publicMembers = BindingFlags.Public | BindingFlags.Instance;
+            if (expr == null)
             {
-                firstPart = name.Substring(0, index);
-                nextParts = name.Substring(index + 1);
-            }
-            else
-                firstPart = name;
-            if (this.Library != null)
-            {
-                type = this.Library.GetType();
-                FieldInfo fieldInfo = type.GetField(firstPart, BindingFlags.Public);
-                if (fieldInfo != null)
+                if (this.Library != null)
                 {
-                    expr = Expression.Field(expr, type, pfName);
-
-                    PropertyInfo propInfo = type.GetProperty(firstPart, BindingFlags.Public);
-                    if (propInfo == null)
+                    Type libType = this.Library.GetType();
+                    PropertyInfo pi = libType.GetProperty(pfName, publicMembers);
+                    if (pi == null)
+                    {
+                        FieldInfo fi = libType.GetField(pfName, publicMembers);
+                        if (fi != null)
+                            expr = Expression.Field(Expression.Constant(this.Library), fi);
+                    }
+                    else
+                        expr = Expression.Property(Expression.Constant(this.Library), pi);
+                }
+                if (expr == null)
+                {
+                    // static property or field
+                    index = name.LastIndexOf('.');
+                    while (index > 0 && type == null)
+                    {
+                        type = Type.GetType(name.Substring(0, index));
+                        index = name.LastIndexOf('.', 0, index);
+                    }
+                    if (type == null)
+                        throw new SimpleExpressionException("Неизвестный тип поля или свойства " + name, this.CurTokStart);
+                    else
                     {
                         
                     }
+                }
+            }
+            else
+            {
+                PropertyInfo pi = expr.Type.GetProperty(pfName, publicMembers);
+                if (pi == null)
+                {
+                    FieldInfo fi = expr.Type.GetField(pfName, publicMembers);
+                    if (fi == null)
+                        throw new SimpleExpressionException("Неверное имя поля или свойства " + name, this.CurTokStart);
                     else
-                    {
-
-
-                    }
-
+                        expr = Expression.Field(expr, fi);
                 }
                 else
-                {
-                    
-
-                }
-                
-                
-
-
+                    expr = Expression.Property(expr, pi);
             }
-                       
+            return index<0 ? expr : GetPropFieldValue(name.Substring(index+1), expr);
+
+
+            /*string[] parts = name.Split('.');
+            string partialName = parts[0];
+
+
+
+
             
-            if (nameParts.Length == 1)
+
+            for(int i = 0; i<parts.Length; i++)
             {
-                // method of custom library
-                if (this.Library == null)
-                    throw new SimpleExpressionException("Библиотека для поля или свойства " + name + " не задана", this.CurTokStart);
-                type = this.Library.GetType();
-            }
-            else
-            {
-                
+                string part = parts[i];
+
+
             }*/
-
-
-
-
-
+                    //throw new SimpleExpressionException("Неверное имя поля или свойства " + name, this.CurTokStart);
             return null;
-            
-            
-            /*if (index > 0)
-            {
-                if (expr != null)
-                    throw new SimpleExpressionException("Неверное имя метода (с \".\"): "+name, this.CurTokStart);
-                string typeName = name.Substring(0, index);
-                type = Type.GetType(typeName);
-                if (type == null)
-                    throw new SimpleExpressionException("Неизвестное имя типа \"" + typeName + "\"", this.CurTokStart);
-                pfName = name.Substring(index + 1, name.Length - index - 1);
-                bf |= BindingFlags.Static;
-            }
-            else
-            {
-                if (expr != null)
-                    type = expr.Type;
-                else
-                {
-                    type = null;
-                    bf |= BindingFlags.Static;
-                }
-                pfName = name;
-            }
-            PropertyInfo pi = type.GetProperty(pfName, bf);
-            if (pi == null)
-            {
-                FieldInfo fi = type.GetField(pfName, bf);
-                if (fi == null)
-                    throw new SimpleExpressionException("Неверное имя поля или свойства " + name, this.CurTokStart);
-                else
-                {
-                    this.tokz.GetToken();
-                    return Expression.Field(expr, type, pfName);
-                }
-            }
-            else
-            {
-                this.tokz.GetToken();
-                return Expression.Property(expr, type, pfName);
-            }*/
         }
         #endregion
     }

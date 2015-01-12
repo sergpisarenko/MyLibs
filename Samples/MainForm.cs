@@ -46,7 +46,7 @@ namespace Samples
 
             //this.Text = sep.GetValue("12.3e2 + MyConstantA - MyFuc(33, \"ddd\")").ToString();
             //System.Linq.Expressions.Expression expr = sep.GetExpression("System.String.Concat(-System.Math.Pow(2.0, 3.0).ToString(), 4.0.ToString())");
-            System.Linq.Expressions.Expression expr = sep.GetExpression("FieldTest.Name"); //"(3.4+4.54666).ToString(\"0.00\")");
+            System.Linq.Expressions.Expression expr = sep.GetExpression("System.Math.PI"); //"(3.4+4.54666).ToString(\"0.00\")");
             Delegate d = System.Linq.Expressions.Expression.Lambda(expr).Compile();
             object x = d.DynamicInvoke();
             
