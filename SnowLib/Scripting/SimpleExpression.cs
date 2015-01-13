@@ -800,6 +800,11 @@ namespace SnowLib.Scripting
                     this.tokz.GetToken();
                     return getCallSequence(v);
 
+                case SimpleExpressionToken.LSB: // индексатор
+                    if (this.Library == null)
+                        throw new SimpleExpressionException("Библиотека не определена для вызова индексатора.", this.CurTokStart);
+                    return GetIndexerValue(Expression.Constant(this.Library));
+
                 case SimpleExpressionToken.CondNot: // cond not
                 case SimpleExpressionToken.BitNot: // bitset not
                     return Expression.Not(Prim(true));
@@ -865,7 +870,15 @@ namespace SnowLib.Scripting
         private Expression GetNameValue(string name, Expression expr)
         {
             SimpleExpressionToken next = this.tokz.GetToken();
-            return next == SimpleExpressionToken.LP ? GetFunctionValue(name, expr) : GetPropFieldValue(name, expr);
+            switch(next)
+            {
+                case SimpleExpressionToken.LP:      // method
+                    return GetFunctionValue(name, expr);
+                case SimpleExpressionToken.LSB:     // indexer
+                    return GetIndexerValue(GetPropFieldValue(name, expr));
+                default:                            // property or field
+                    return GetPropFieldValue(name, expr); 
+            }
         }
 
         private Expression GetFunctionValue(string name, Expression expr)
@@ -877,18 +890,26 @@ namespace SnowLib.Scripting
             {
                 if (expr != null)
                     throw new SimpleExpressionException("Неверное имя метода name", this.CurTokStart);
-                string typeName = name.Substring(0, index);
-                type = Type.GetType(typeName);
+                string prefix = name.Substring(0, index);
+                type = Type.GetType(prefix);
                 if (type == null)
-                    throw new SimpleExpressionException("Неизвестное имя типа \"" + typeName + "\"", this.CurTokStart);
+                {
+                    expr = GetPropFieldValue(prefix, expr);
+                    type = expr.Type;
+                }
                 methodName = name.Substring(index + 1, name.Length - index - 1);
             }
             else
             {
-                if (expr != null)
-                    type = expr.Type;
+                if (expr == null)
+                {
+                    if (this.Library == null)
+                        throw new SimpleExpressionException("Библиотека для вызова метода \"" + name + "\" не задана.", this.CurTokStart);
+                    else
+                        type = this.Library.GetType();
+                }
                 else
-                    type = null;
+                    type = expr.Type;
                 methodName = name;
             }
             List<Expression> callParameters = new List<Expression>(3);
@@ -898,7 +919,7 @@ namespace SnowLib.Scripting
             {
                 callParameters.Add(this.Expr(getToken, true));
                 if (this.tokz.CurrentToken != SimpleExpressionToken.RP && this.tokz.CurrentToken != SimpleExpressionToken.Comma)
-                    throw new SimpleExpressionException("Ожидалась закрывающая скобка для завершения параметров или запятая для их продолжения", this.CurTokStart);                    
+                    throw new SimpleExpressionException("Ожидалась закрывающая круглая скобка для завершения параметров метода или запятая для их продолжения", this.CurTokStart);                    
                 getToken = true;
             }
             Type[] callTypes = new Type[callParameters.Count];
@@ -912,23 +933,12 @@ namespace SnowLib.Scripting
             return Expression.Call(expr, methodInfo, callParameters);
         }
 
-        private Expression GetIndexValue(Expression expr)
-        {
-            return null;
-        }
-
-        /*private bool isFieldOrProperty(string name, Type type)
-        {
-            MemberInfo[] mi = this.Library.GetType().GetMember(pfName, BindingFlags.Public | BindingFlags.Instance);
-            if (mi.Length > 0 && (mi[0].MemberType == MemberTypes.Field || mi[0].MemberType == MemberTypes.Property))
-            
-        }*/
-
         private Expression GetPropFieldValue(string name, Expression expr)
         {
             int index = name.IndexOf('.');
             string pfName = index < 0 ? name : name.Substring(0, index);
             BindingFlags publicMembers = BindingFlags.Public | BindingFlags.Instance;
+            BindingFlags publicStatic = BindingFlags.Public | BindingFlags.Static;
             if (expr == null)
             {
                 if (this.Library != null)
@@ -947,17 +957,30 @@ namespace SnowLib.Scripting
                 if (expr == null)
                 {
                     // static property or field
-                    index = name.LastIndexOf('.');
-                    while (index > 0 && type == null)
+                    Type staticType = null;
+                    while (index > 0 && staticType == null)
                     {
-                        type = Type.GetType(name.Substring(0, index));
-                        index = name.LastIndexOf('.', 0, index);
+                        staticType = Type.GetType(name.Substring(0, index));
+                        index = name.IndexOf('.', index+1);
                     }
-                    if (type == null)
-                        throw new SimpleExpressionException("Неизвестный тип поля или свойства " + name, this.CurTokStart);
+                    if (staticType == null)
+                        throw new SimpleExpressionException("Неизвестный тип " + name, this.CurTokStart);
                     else
                     {
-                        
+                        int propStart = staticType.FullName.Length+1;
+                        index = name.IndexOf('.', propStart);
+                        string propName = name.Substring(propStart, (index<0 ? name.Length : index) -propStart);
+                        PropertyInfo pi = staticType.GetProperty(propName, publicStatic);
+                        if (pi == null)
+                        {
+                            FieldInfo fi = staticType.GetField(propName, publicStatic);
+                            if (fi == null)
+                                throw new SimpleExpressionException("Неизветсное статическое поле или свойство " + propName, this.CurTokStart);
+                            else
+                                expr = Expression.Field(null, fi);
+                        }
+                        else
+                            expr = Expression.Property(null, pi);
                     }
                 }
             }
@@ -968,7 +991,7 @@ namespace SnowLib.Scripting
                 {
                     FieldInfo fi = expr.Type.GetField(pfName, publicMembers);
                     if (fi == null)
-                        throw new SimpleExpressionException("Неверное имя поля или свойства " + name, this.CurTokStart);
+                        throw new SimpleExpressionException("Неверное имя поля или свойства " + pfName, this.CurTokStart);
                     else
                         expr = Expression.Field(expr, fi);
                 }
@@ -976,24 +999,29 @@ namespace SnowLib.Scripting
                     expr = Expression.Property(expr, pi);
             }
             return index<0 ? expr : GetPropFieldValue(name.Substring(index+1), expr);
+        }
 
-
-            /*string[] parts = name.Split('.');
-            string partialName = parts[0];
-
-
-
-
-            
-
-            for(int i = 0; i<parts.Length; i++)
+        private Expression GetIndexerValue(Expression expr)
+        {
+            List<Expression> indexes = new List<Expression>(3);
+            bool getToken = false;
+            this.tokz.GetToken();
+            while (this.tokz.CurrentToken != SimpleExpressionToken.RSB)
             {
-                string part = parts[i];
-
-
-            }*/
-                    //throw new SimpleExpressionException("Неверное имя поля или свойства " + name, this.CurTokStart);
-            return null;
+                indexes.Add(this.Expr(getToken, true));
+                if (this.tokz.CurrentToken != SimpleExpressionToken.RSB && this.tokz.CurrentToken != SimpleExpressionToken.Comma)
+                    throw new SimpleExpressionException("Ожидалась закрывающая квадратная скобка для завершения индексов или запятая для их продолжения", this.CurTokStart);
+                getToken = true;
+            }
+            Type[] indexTypes = new Type[indexes.Count];
+            for (int i = 0; i < indexTypes.Length; i++)
+                indexTypes[i] = indexes[i].Type;
+            PropertyInfo pi = expr.Type.GetProperty("Item", indexTypes);
+            if (pi == null)
+                throw new SimpleExpressionException("Не найден подходящий индексатор с параметрами: " +
+                    String.Join(", ", (object[])indexTypes), this.CurTokStart);
+            this.tokz.GetToken();
+            return Expression.Property(expr, pi, indexes);
         }
         #endregion
     }

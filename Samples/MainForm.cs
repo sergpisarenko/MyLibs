@@ -15,10 +15,18 @@ namespace Samples
         public class My
         {
             public string Name = "Fixed";
+            public double this[int x, int y]
+            {
+                get { return x * y; }
+            }
         }
+        public My FieldTest { get; set; }
 
-        public My FieldTest;
 
+        public int this[int index1, int index2]
+        {
+            get { return index1+index2; }
+        }
 
         public MainForm()
         {
@@ -29,6 +37,7 @@ namespace Samples
 
             Delegate d2 = System.Linq.Expressions.Expression.Lambda(add).Compile();
             object y = d2.DynamicInvoke();
+            
 
 
             //Expression
@@ -38,15 +47,14 @@ namespace Samples
 
             //typeof(System.Math).GetMethod("DivRem", )
             FieldTest = new My();
+            //double xxx = FieldTest[2, 2];
 
             SnowLib.Scripting.SimpleExpressionParser sep = new SnowLib.Scripting.SimpleExpressionParser(this);
             
             //sep.UserFunctions = this;
-
-
             //this.Text = sep.GetValue("12.3e2 + MyConstantA - MyFuc(33, \"ddd\")").ToString();
             //System.Linq.Expressions.Expression expr = sep.GetExpression("System.String.Concat(-System.Math.Pow(2.0, 3.0).ToString(), 4.0.ToString())");
-            System.Linq.Expressions.Expression expr = sep.GetExpression("System.Math.PI"); //"(3.4+4.54666).ToString(\"0.00\")");
+            System.Linq.Expressions.Expression expr = sep.GetExpression("[2,2]"); //"(3.4+4.54666).ToString(\"0.00\")");
             Delegate d = System.Linq.Expressions.Expression.Lambda(expr).Compile();
             object x = d.DynamicInvoke();
             
