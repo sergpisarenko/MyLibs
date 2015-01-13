@@ -41,21 +41,16 @@
   <ItemGroup>
     <Compile Include="Collections\EventList.cs" />
     <Compile Include="DB\SQLProc.cs" />
+    <Compile Include="Extensions\Enum.cs" />
+    <Compile Include="Extensions\TimeSpan.cs" />
     <Compile Include="Items\IdItem.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Resources\Messages.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Messages.resx</DependentUpon>
-    </Compile>
+    <Compile Include="Resources\Messages.cs" />
     <Compile Include="Scripting\SimpleExpression.cs" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
-    <EmbeddedResource Include="Resources\Messages.resx">
-      <Generator>ResXFileCodeGenerator</Generator>
-      <LastGenOutput>Messages.Designer.cs</LastGenOutput>
-    </EmbeddedResource>
+    <EmbeddedResource Include="Resources\Messages.resx" />
     <EmbeddedResource Include="Resources\Messages.ru.resx">
       <SubType>Designer</SubType>
     </EmbeddedResource>

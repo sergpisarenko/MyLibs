@@ -6,67 +6,19 @@ using System.Drawing;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
+using SnowLib.Extensions;
+using System.Text.RegularExpressions;
 
 namespace Samples
 {
     public partial class MainForm : Form
     {
-
-        public class My
-        {
-            public string Name = "Fixed";
-            public double this[int x, int y]
-            {
-                get { return x * y; }
-            }
-        }
-        public My FieldTest { get; set; }
-
-
-        public int this[int index1, int index2]
-        {
-            get { return index1+index2; }
-        }
-
+        #region Constructors and initializers
         public MainForm()
         {
             InitializeComponent();
-            System.Linq.Expressions.Expression left = System.Linq.Expressions.Expression.Constant(false);
-            System.Linq.Expressions.Expression right = System.Linq.Expressions.Expression.Constant(true);
-            System.Linq.Expressions.Expression add = System.Linq.Expressions.Expression.Or(left, right);
-
-            Delegate d2 = System.Linq.Expressions.Expression.Lambda(add).Compile();
-            object y = d2.DynamicInvoke();
-            
-
-
-            //Expression
-
-            int x2 = 1;
-            int y2 = (2 | 2 << 2) + 1;
-
-            //typeof(System.Math).GetMethod("DivRem", )
-            FieldTest = new My();
-            //double xxx = FieldTest[2, 2];
-
-            SnowLib.Scripting.SimpleExpressionParser sep = new SnowLib.Scripting.SimpleExpressionParser(this);
-            
-            //sep.UserFunctions = this;
-            //this.Text = sep.GetValue("12.3e2 + MyConstantA - MyFuc(33, \"ddd\")").ToString();
-            //System.Linq.Expressions.Expression expr = sep.GetExpression("System.String.Concat(-System.Math.Pow(2.0, 3.0).ToString(), 4.0.ToString())");
-            System.Linq.Expressions.Expression expr = sep.GetExpression("[2,2]"); //"(3.4+4.54666).ToString(\"0.00\")");
-            Delegate d = System.Linq.Expressions.Expression.Lambda(expr).Compile();
-            object x = d.DynamicInvoke();
-            
-
         }
-
-        public double? MyFunc(int x, string y)
-        {
-            return 1;
-        }
-
-     
+        #endregion
 
         #region Find List test
         private void btnFLTest_Click(object sender, EventArgs e)
@@ -150,6 +102,5 @@ namespace Samples
             return new string(buffer);
         }
         #endregion
-
     }
 }

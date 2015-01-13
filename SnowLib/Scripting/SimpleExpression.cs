@@ -1024,6 +1024,16 @@ namespace SnowLib.Scripting
             return Expression.Property(expr, pi, indexes);
         }
         #endregion
+
+        #region Открытые статические методы
+        public static object GetValue(string expression, object library)
+        {
+            SimpleExpressionParser parser = new SimpleExpressionParser(library);
+            Expression expr = parser.GetExpression(expression);
+            Delegate del = System.Linq.Expressions.Expression.Lambda(expr).Compile();
+            return del.DynamicInvoke();
+        }
+        #endregion
     }
     #endregion
 }

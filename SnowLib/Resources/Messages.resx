@@ -120,4 +120,16 @@
   <data name="SimpleExpression_Exception_IntegerOnly" xml:space="preserve">
     <value>Only integer values are allowed!</value>
   </data>
+  <data name="TimeSpan_Day" xml:space="preserve">
+    <value>day</value>
+  </data>
+  <data name="TimeSpan_Hour" xml:space="preserve">
+    <value>hrs</value>
+  </data>
+  <data name="TimeSpan_Minute" xml:space="preserve">
+    <value>min</value>
+  </data>
+  <data name="TimeSpan_Second" xml:space="preserve">
+    <value>sec</value>
+  </data>
 </root>

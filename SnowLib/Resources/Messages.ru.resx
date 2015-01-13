@@ -120,4 +120,16 @@
   <data name="SimpleExpression_Exception_IntegerOnly" xml:space="preserve">
     <value>Допускается только целое число!</value>
   </data>
+  <data name="TimeSpan_Day" xml:space="preserve">
+    <value>сут</value>
+  </data>
+  <data name="TimeSpan_Hour" xml:space="preserve">
+    <value>ч</value>
+  </data>
+  <data name="TimeSpan_Minute" xml:space="preserve">
+    <value>мин</value>
+  </data>
+  <data name="TimeSpan_Second" xml:space="preserve">
+    <value>с</value>
+  </data>
 </root>
