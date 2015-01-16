@@ -66,7 +66,8 @@ namespace SnowLib.Scripting
         BitNot,     // ~
         CondOr,     // ||
         CondAnd,    // &&
-        CondNot,    // ?
+        CondNot,    // !
+        QMark,      // ?
         Text        // текстовая константа в ""
     }
     #endregion
@@ -311,6 +312,10 @@ namespace SnowLib.Scripting
                         break;
                     case '.':
                         this.CurrentToken = SimpleExpressionToken.Point;
+                        this.Pos++;
+                        break;
+                    case '?':
+                        this.CurrentToken = SimpleExpressionToken.QMark;
                         this.Pos++;
                         break;
                     default:
@@ -612,9 +617,16 @@ namespace SnowLib.Scripting
             {
                 switch (this.tokz.CurrentToken)
                 {
-                    case SimpleExpressionToken.CondOr:
-                        left = Expression.Or(left, CondAnd(true));
-                        break;
+                    case SimpleExpressionToken.QMark:
+                        if (left.Type != typeof(bool))
+                            throw new SimpleExpressionException("Ожидался логический тип выражения", this.CurTokStart);
+                        Expression truePart = CondOr(true);
+                        if (this.tokz.CurrentToken != SimpleExpressionToken.Colon)
+                            throw new SimpleExpressionException("Ожидалось двоеточие для отделения истинной части от ложной", this.CurTokStart);
+                        Expression falsePart = CondOr(true);
+                        if (truePart.Type != falsePart.Type)
+                            throw new SimpleExpressionException("Тип истинной части ("+truePart.Type.FullName+") отличается от типа ложной ("+falsePart.Type.FullName, this.CurTokStart);
+                        return Expression.Condition(left, truePart, falsePart);
                     case SimpleExpressionToken.End:
                         return left;
                     default:
@@ -625,6 +637,19 @@ namespace SnowLib.Scripting
                 }
             }
         }
+
+        private Expression CondOr(bool get)
+        {
+            Expression left = CondAnd(get);
+            for (; ; )
+            {
+                if (this.tokz.CurrentToken == SimpleExpressionToken.CondOr)
+                    left = Expression.Or(left, CondAnd(true));
+                else
+                    return left;
+            }
+        }
+
 
         private Expression CondAnd(bool get)
         {
