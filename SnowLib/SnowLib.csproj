@@ -40,10 +40,12 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Collections\EventList.cs" />
-    <Compile Include="DB\SQLProc.cs" />
+    <Compile Include="DB\QueryFieldAttribute.cs" />
+    <Compile Include="DB\SqlProc.cs" />
     <Compile Include="Extensions\Enum.cs" />
+    <Compile Include="DB\SqlDataReaderExtension.cs" />
     <Compile Include="Extensions\TimeSpan.cs" />
-    <Compile Include="Items\IdItem.cs" />
+    <Compile Include="Items\KeyedItem.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Resources\Messages.cs" />
     <Compile Include="Scripting\SimpleExpression.cs" />
