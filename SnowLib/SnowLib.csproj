@@ -41,6 +41,9 @@
   <ItemGroup>
     <Compile Include="Collections\EventList.cs" />
     <Compile Include="DB\QueryFieldAttribute.cs" />
+    <Compile Include="DB\SqlCommandAttribute.cs" />
+    <Compile Include="DB\SqlCommandParameterAttribute.cs" />
+    <Compile Include="DB\SqlCommandProxy.cs" />
     <Compile Include="DB\SqlProc.cs" />
     <Compile Include="Extensions\Enum.cs" />
     <Compile Include="DB\SqlDataReaderExtension.cs" />
