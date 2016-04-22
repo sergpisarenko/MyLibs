@@ -1,31 +1,41 @@
 ﻿using System;
+using System.Resources;
 using System.Globalization;
 
 namespace SnowLib
 {
+    /// <summary>
+    /// Работа с текстовыми ресурсами (строками)
+    /// </summary>
     internal static class Messages
     {
+        private static ResourceManager resourceManager;
 
-        private static System.Resources.ResourceManager resourceMan;
-
-        private static System.Resources.ResourceManager ResourceManager
+        static Messages()
         {
-            get
-            {
-                if (object.ReferenceEquals(resourceMan, null))
-                    resourceMan = new global::System.Resources.ResourceManager("SnowLib.Resources.Messages", typeof(Messages).Assembly);
-                return resourceMan;
-            }
+            Type type = typeof(Messages);
+            resourceManager = new ResourceManager(type.Namespace + ".Resources." + type.Name, type.Assembly);
         }
 
         internal static string Get(string name)
         {
-            return ResourceManager.GetString(name, CultureInfo.CurrentCulture);
+            return resourceManager.GetString(name, CultureInfo.CurrentCulture);
         }
 
-        internal static string Get(string name, CultureInfo culture)
+        internal static string Get(string name, CultureInfo cultureInfo)
         {
-            return ResourceManager.GetString(name, culture);
+            return resourceManager.GetString(name, cultureInfo);
         }
+
+        internal static string Format(string name, params object[] args)
+        {
+            return String.Format(resourceManager.GetString(name, CultureInfo.CurrentCulture), args);
+        }
+
+        internal static string Format(string name, CultureInfo cultureInfo, params object[] args)
+        {
+            return String.Format(resourceManager.GetString(name, cultureInfo), args);
+        }
+
     }
 }

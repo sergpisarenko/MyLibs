@@ -44,15 +44,15 @@ namespace Samples
 
         private void btnEvaluate_Click(object sender, EventArgs e)
         {
-            SqlConnection connection = new SqlConnection(
-                @"Data Source=SQLTAG\SQL2008;Initial Catalog=IsupDB;Integrated Security=False;User ID=AdminIsup;Password=AdminAksZF45;Network Library=dbmssocn;Packet Size=4096");
-            ISqlProcedures isql = SqlCommandProxy<ISqlProcedures>.Create(connection);
+            /*SqlConnection connection = new SqlConnection(
+                @"Data Source=SQLTAG\SQL2008;Initial Catalog=IsupDB;Integrated Security=False;User ID=;Password=;Network Library=dbmssocn;Packet Size=4096");
+            ISqlProcedures isql = SqlCommandProxy<ISqlProcedures>.Create(connection);*/
             
 
-            int x = 0;
-            int rv = isql.Test(1, "aaa", out x);
+            //int x = 0;
+            //int rv = isql.Test(1, "aaa", out x);
 
-            DataTable dt = isql.GetUsers(null);
+            //DataTable dt = isql.GetUsers(null);
 
 
             //sp.

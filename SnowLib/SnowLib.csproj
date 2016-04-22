@@ -31,7 +31,11 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.Configuration" />
     <Reference Include="System.Core" />
+    <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Security" />
+    <Reference Include="System.ServiceModel" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -40,19 +44,43 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Collections\EventList.cs" />
-    <Compile Include="DB\QueryFieldAttribute.cs" />
+    <Compile Include="Config\AssemblyInfo.cs" />
+    <Compile Include="Config\PropertyString.cs" />
+    <Compile Include="DB\ISpmAccessor.cs" />
+    <Compile Include="DB\ISpmContext.cs" />
+    <Compile Include="DB\ISpmUpdateProperties.cs" />
+    <Compile Include="DB\SpmAccessor.cs" />
+    <Compile Include="DB\SpmAccessorBase.cs" />
+    <Compile Include="DB\SpmAccessors.cs" />
+    <Compile Include="DB\SpmAttribute.cs" />
+    <Compile Include="DB\SpmComplexAccessor.cs" />
+    <Compile Include="DB\SpmItem.cs" />
+    <Compile Include="DB\SpmNullableAccessor.cs" />
+    <Compile Include="DB\SpmReader.cs" />
+    <Compile Include="DB\SpmReaderDelegates.cs" />
+    <Compile Include="DB\SpmSharedItemPool.cs" />
     <Compile Include="DB\SqlCommandAttribute.cs" />
     <Compile Include="DB\SqlCommandParameterAttribute.cs" />
     <Compile Include="DB\SqlCommandProxy.cs" />
     <Compile Include="DB\SqlProc.cs" />
+    <Compile Include="DB\SqlReturn.cs" />
     <Compile Include="Extensions\Enum.cs" />
-    <Compile Include="DB\SqlDataReaderExtension.cs" />
+    <Compile Include="Extensions\StringEx.cs" />
     <Compile Include="Extensions\TimeSpan.cs" />
-    <Compile Include="Items\KeyedItem.cs" />
+    <Compile Include="Items\DateTimePeriod.cs" />
+    <Compile Include="Items\EditableItem.cs" />
+    <Compile Include="Items\IAllowEditing.cs" />
+    <Compile Include="Items\IdentityItem.cs" />
+    <Compile Include="Items\IEditingOperation.cs" />
+    <Compile Include="Logging\Logger.cs" />
+    <Compile Include="Logging\LogItem.cs" />
+    <Compile Include="Logging\LogSeverity.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Resources\Messages.cs" />
     <Compile Include="Scripting\SimpleExpression.cs" />
     <Compile Include="Threading\DelayedTask.cs" />
+    <Compile Include="WCF\DuplexConnection.cs" />
+    <Compile Include="WCF\ServiceClient.cs" />
   </ItemGroup>
   <ItemGroup />
   <ItemGroup>
