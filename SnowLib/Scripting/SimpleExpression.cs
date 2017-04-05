@@ -359,7 +359,7 @@ namespace SnowLib.Scripting
                 try
                 {
                     char postfix = ' ';
-                    if (tpos > this.formula.Length)
+                    if (tpos < this.formula.Length)
                         postfix = this.formula[tpos];
                     switch(postfix)
                     {

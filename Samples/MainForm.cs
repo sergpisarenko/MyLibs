@@ -1,4 +1,8 @@
 ﻿using System;
+using System.Reflection;
+using System.Reflection.Emit;
+using System.Linq.Expressions;
+using System.Dynamic;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
@@ -42,8 +46,54 @@ namespace Samples
             DataTable GetUsers(int? nUserIdIn = null);
         }
 
+        public double MyProp
+        {
+            get { return 1.0; }
+        }
+
+        public double MyField
+        {
+            get { return 2.0; }
+        }
+
+        
+
         private void btnEvaluate_Click(object sender, EventArgs e)
         {
+            MyVal<double> x = new MyVal<double>();
+            x.Value = 3.3;
+            dynamic myt = Activator.CreateInstance(CreateAnonymousType<double, MyVal<double>>("Val1", "Val2"));
+            myt.Val2 = x;
+            myt.Val1 = 1.0;
+
+            object result = null;
+            try
+            {
+                result = SnowLib.Scripting.SimpleExpressionParser.GetValue(this.tbExpression.Text, myt);
+                
+            }
+            catch(SnowLib.Scripting.SimpleExpressionException see)
+            {
+                if (see.Position >= 0)
+                {
+                    this.tbExpression.Select(see.Position, see.Length);
+                    this.tbExpression.Focus();
+                }
+                this.tbResult.ForeColor = Color.Red;
+                this.tbResult.Text = see.Message;
+                return;
+            }
+            catch(Exception ex)
+            {
+                this.tbResult.ForeColor = Color.Red;
+                this.tbResult.Text = ex.Message;
+                return;
+
+            }
+            this.tbResult.ForeColor = SystemColors.WindowText;
+            this.tbResult.Text = Convert.ToString(result);
+
+
             /*SqlConnection connection = new SqlConnection(
                 @"Data Source=SQLTAG\SQL2008;Initial Catalog=IsupDB;Integrated Security=False;User ID=;Password=;Network Library=dbmssocn;Packet Size=4096");
             ISqlProcedures isql = SqlCommandProxy<ISqlProcedures>.Create(connection);*/
@@ -93,10 +143,28 @@ namespace Samples
             this.tbResult.Text = Convert.ToString(result);*/
 
         }
+
+        public class MyVal<T>
+        {
+            public T Value;
+            public static implicit operator T(MyVal<T> vt)
+            {
+                return vt.Value;
+            }
+        }
+
+        public static Type CreateAnonymousType<TFieldA, TFieldB>(string fieldNameA, string fieldNameB)
+        {
+            AssemblyName dynamicAssemblyName = new AssemblyName("TempAssembly");
+            AssemblyBuilder dynamicAssembly = AssemblyBuilder.DefineDynamicAssembly(dynamicAssemblyName, AssemblyBuilderAccess.Run);
+            ModuleBuilder dynamicModule = dynamicAssembly.DefineDynamicModule("TempAssembly");
+
+            TypeBuilder dynamicAnonymousType = dynamicModule.DefineType("AnonymousType", TypeAttributes.Public);
+
+            dynamicAnonymousType.DefineField(fieldNameA, typeof(TFieldA), FieldAttributes.Public);
+            dynamicAnonymousType.DefineField(fieldNameB, typeof(TFieldB), FieldAttributes.Public);
+
+            return dynamicAnonymousType.CreateType();
+        }
     }
-
-
-
-
-
 }
